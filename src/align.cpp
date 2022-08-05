@@ -148,34 +148,34 @@ int main(int argc, char** argv) {
 
   std::cout << "target:" << target_cloud->size() << "[pts] source:" << source_cloud->size() << "[pts]" << std::endl;
 
-  std::cout << "--- pcl_gicp ---" << std::endl;
-  pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> pcl_gicp;
-  test_pcl(pcl_gicp, target_cloud, source_cloud);
+  // std::cout << "--- pcl_gicp ---" << std::endl;
+  // pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> pcl_gicp;
+  // test_pcl(pcl_gicp, target_cloud, source_cloud);
 
-  std::cout << "--- pcl_ndt ---" << std::endl;
-  pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> pcl_ndt;
-  pcl_ndt.setResolution(1.0);
-  test_pcl(pcl_ndt, target_cloud, source_cloud);
+  // std::cout << "--- pcl_ndt ---" << std::endl;
+  // pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> pcl_ndt;
+  // pcl_ndt.setResolution(1.0);
+  // test_pcl(pcl_ndt, target_cloud, source_cloud);
 
   std::cout << "--- fgicp_st ---" << std::endl;
   fast_gicp::FastGICPSingleThread<pcl::PointXYZ, pcl::PointXYZ> fgicp_st;
   test(fgicp_st, target_cloud, source_cloud);
 
-  std::cout << "--- fgicp_mt ---" << std::endl;
-  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> fgicp_mt;
-  // fast_gicp uses all the CPU cores by default
-  // fgicp_mt.setNumThreads(8);
-  test(fgicp_mt, target_cloud, source_cloud);
+  // std::cout << "--- fgicp_mt ---" << std::endl;
+  // fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> fgicp_mt;
+  // // fast_gicp uses all the CPU cores by default
+  // // fgicp_mt.setNumThreads(8);
+  // test(fgicp_mt, target_cloud, source_cloud);
 
-  std::cout << "--- vgicp_st ---" << std::endl;
-  fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> vgicp;
-  vgicp.setResolution(1.0);
-  vgicp.setNumThreads(1);
-  test(vgicp, target_cloud, source_cloud);
+  // std::cout << "--- vgicp_st ---" << std::endl;
+  // fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> vgicp;
+  // vgicp.setResolution(1.0);
+  // vgicp.setNumThreads(1);
+  // test(vgicp, target_cloud, source_cloud);
 
-  std::cout << "--- vgicp_mt ---" << std::endl;
-  vgicp.setNumThreads(omp_get_max_threads());
-  test(vgicp, target_cloud, source_cloud);
+  // std::cout << "--- vgicp_mt ---" << std::endl;
+  // vgicp.setNumThreads(omp_get_max_threads());
+  // test(vgicp, target_cloud, source_cloud);
 
 #ifdef USE_VGICP_CUDA
   std::cout << "--- ndt_cuda (P2D) ---" << std::endl;
