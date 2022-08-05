@@ -13,7 +13,10 @@ else()
   set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 endif()
 
-set(CMAKE_BUILD_TYPE "Release")
+# Set Debug or Release mode
+set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_C_FLAGS_DEBUG "-g -DDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
 
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
