@@ -141,6 +141,37 @@ Eigen::Matrix4d align_points(
   return reg->getFinalTransformation().cast<double>();
 }
 
+// Differentiable version 
+std::shared_ptr<fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>> 
+diff_gicp_worker(
+  const Eigen::Matrix<double, -1, 3>& target,
+  const Eigen::Matrix<double, -1, 3>& source,
+  int k_correspondences,
+  double max_correspondence_distance,
+  double neighbor_search_radius,
+  const Eigen::Matrix4f& initial_guess
+) {
+  pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = eigen2pcl(target);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud = eigen2pcl(source);
+
+  // Do not use downsampling for now
+  // Only use GICP for now
+  std::shared_ptr<fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>> reg;
+  std::shared_ptr<fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>> gicp(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>);
+  gicp->setMaxCorrespondenceDistance(max_correspondence_distance);
+  gicp->setCorrespondenceRandomness(k_correspondences);
+  gicp->setNumThreads(1);
+  reg = gicp;
+
+  reg->setInputTarget(target_cloud);
+  reg->setInputSource(source_cloud);
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
+  reg->align(*aligned, initial_guess);
+
+  return reg->getFinalTransformation().cast<double>();
+}
+
 using LsqRegistration = fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>;
 using FastGICP = fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>;
 using FastVGICP = fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>;

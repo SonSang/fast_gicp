@@ -18,6 +18,9 @@ set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_C_FLAGS_DEBUG "-g -DDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
 
+# Set autodiff path (manually for now)
+set(AUTODIFF_INCLUDE_DIR "/home/sanghyun/anaconda3/envs/dslam/include")
+
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -56,6 +59,14 @@ add_library(fast_gicp SHARED
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp
+
+  src/fast_gicp/diff/diff_lsq_registration.cpp
+  src/fast_gicp/diff/diff_fast_gicp.cpp
+  src/fast_gicp/diff/diff_fast_gicp_st.cpp
+)
+# [autodiff] requires c++17
+target_compile_features(
+  fast_gicp PRIVATE cxx_std_17
 )
 target_link_libraries(fast_gicp
   ${PCL_LIBRARIES}
@@ -64,12 +75,16 @@ target_include_directories(fast_gicp PUBLIC
   include
   ${PCL_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${AUTODIFF_INCLUDE_DIR}
 )
 
 ### APPS ###
 if(BUILD_apps)
   add_executable(gicp_align src/align.cpp)
   add_dependencies(gicp_align fast_gicp)
+  target_compile_features(
+    gicp_align PRIVATE cxx_std_17
+  )
   target_link_libraries(gicp_align
     ${PCL_LIBRARIES}
     fast_gicp
@@ -77,7 +92,21 @@ if(BUILD_apps)
 
   add_executable(gicp_kitti src/kitti.cpp)
   add_dependencies(gicp_kitti fast_gicp)
+  target_compile_features(
+    gicp_kitti PRIVATE cxx_std_17
+  )
   target_link_libraries(gicp_kitti
+    ${PCL_LIBRARIES}
+    ${AUTODIFF_INCLUDE_DIR}
+    fast_gicp
+  )
+
+  add_executable(diff_gicp_align src/diff_align.cpp)
+  add_dependencies(diff_gicp_align fast_gicp)
+  target_compile_features(
+    diff_gicp_align PRIVATE cxx_std_17
+  )
+  target_link_libraries(diff_gicp_align
     ${PCL_LIBRARIES}
     fast_gicp
   )
@@ -93,9 +122,13 @@ if(BUILD_PYTHON_BINDINGS)
     include
     ${PCL_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
+    ${AUTODIFF_INCLUDE_DIR}
   )
   target_link_libraries(pygicp PRIVATE
     fast_gicp
+  )
+  target_compile_features(
+    pygicp PRIVATE cxx_std_17
   )
 endif()
 
