@@ -13,8 +13,8 @@ else()
   set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 endif()
 
-# set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_BUILD_TYPE "Debug")   # Change to this to enable VSCode CMakeTools Debugging
+set(CMAKE_BUILD_TYPE "Release")
+# set(CMAKE_BUILD_TYPE "Debug")   # Change to this to enable VSCode CMakeTools Debugging
 
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -78,6 +78,11 @@ if(BUILD_apps)
   target_link_libraries(gicp_kitti
     ${PCL_LIBRARIES}
     fast_gicp
+  )
+
+  add_executable(pcl_kitti src/pcl_kitti.cpp)
+  target_link_libraries(pcl_kitti
+    ${PCL_LIBRARIES}
   )
 endif()
 

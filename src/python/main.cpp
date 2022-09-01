@@ -16,6 +16,9 @@
 #include <pcl/point_cloud.h>
 #include <pcl/filters/approximate_voxel_grid.h>
 
+// @sanghyun: add PCL ICP methods
+#include <pcl/registration/icp.h>
+
 namespace py = pybind11;
 
 fast_gicp::NeighborSearchMethod search_method(const std::string& neighbor_search_method) {
@@ -149,6 +152,9 @@ using FastVGICPCuda = fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>;
 using NDTCuda = fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>;
 #endif
 
+// @sanghyun
+using PCLICP = pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>;
+  
 PYBIND11_MODULE(pygicp, m) {
   m.def("downsample", &downsample, "downsample points");
 
@@ -215,6 +221,22 @@ PYBIND11_MODULE(pygicp, m) {
     .def("set_resolution", &NDTCuda::setResolution)
   ;
 #endif
+
+  // @sanghyun
+  py::class_<PCLICP, std::shared_ptr<PCLICP>>(m, "PCLICP")
+    .def(py::init())
+    .def("set_max_correspondence_distance", &PCLICP::setMaxCorrespondenceDistance)
+    .def("set_input_target", [] (PCLICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputTarget(eigen2pcl(points)); })
+    .def("set_input_source", [] (PCLICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputSource(eigen2pcl(points)); })
+    .def("get_final_transformation", &PCLICP::getFinalTransformation)
+    .def("align",
+      [] (PCLICP& reg, const Eigen::Matrix4f& initial_guess) { 
+        pcl::PointCloud<pcl::PointXYZ> aligned;
+        reg.align(aligned, initial_guess);
+        return reg.getFinalTransformation();
+      }, py::arg("initial_guess") = Eigen::Matrix4f::Identity()
+    )
+  ;
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
