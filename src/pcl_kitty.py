@@ -33,7 +33,7 @@ def main():
 			delta = numpy.identity(4)
 		else:
 			reg.set_input_source(source_points)
-            reg.set_input_target(target_points)
+			reg.set_input_target(target_points)
 			delta = reg.align()
 
 		# Accumulate the delta to compute the full sensor trajectory
@@ -46,8 +46,8 @@ def main():
 		# Plot the estimated trajectory
 		traj = numpy.array([x[:3, 3] for x in poses])
 
-        # Set target points
-        target_points = source_points
+		# Set target points
+		target_points = source_points
 
 		if i % 30 == 0:
 			pyplot.clf()
