@@ -18,6 +18,7 @@
 
 // @sanghyun: add PCL ICP methods
 #include <pcl/registration/icp.h>
+#include <pcl/registration/gicp.h>
 
 namespace py = pybind11;
 
@@ -154,7 +155,9 @@ using NDTCuda = fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>;
 
 // @sanghyun
 using PCLICP = pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>;
-  
+// using PCLICP_Po2Pl = pcl::IterativeClosestPointWithNormals<pcl::PointXYZ, pcl::PointXYZ>;
+using PCLGICP = pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>; 
+
 PYBIND11_MODULE(pygicp, m) {
   m.def("downsample", &downsample, "downsample points");
 
@@ -231,6 +234,39 @@ PYBIND11_MODULE(pygicp, m) {
     .def("get_final_transformation", &PCLICP::getFinalTransformation)
     .def("align",
       [] (PCLICP& reg, const Eigen::Matrix4f& initial_guess) { 
+        pcl::PointCloud<pcl::PointXYZ> aligned;
+        reg.align(aligned, initial_guess);
+        return reg.getFinalTransformation();
+      }, py::arg("initial_guess") = Eigen::Matrix4f::Identity()
+    )
+  ;
+
+  // @sanghyun TODO: Po2Pl needs normal information, see this page: 
+  // https://github.com/tttamaki/ICP-test/blob/master/src/icp3_with_normal_iterative_view.cpp
+
+  // py::class_<PCLICP_Po2Pl, std::shared_ptr<PCLICP_Po2Pl>>(m, "PCLICP_Po2Pl")
+  //   .def(py::init())
+  //   .def("set_max_correspondence_distance", &PCLICP_Po2Pl::setMaxCorrespondenceDistance)
+  //   .def("set_input_target", [] (PCLICP_Po2Pl& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputTarget(eigen2pcl(points)); })
+  //   .def("set_input_source", [] (PCLICP_Po2Pl& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputSource(eigen2pcl(points)); })
+  //   .def("get_final_transformation", &PCLICP_Po2Pl::getFinalTransformation)
+  //   .def("align",
+  //     [] (PCLICP_Po2Pl& reg, const Eigen::Matrix4f& initial_guess) { 
+  //       pcl::PointCloud<pcl::PointXYZ> aligned;
+  //       reg.align(aligned, initial_guess);
+  //       return reg.getFinalTransformation();
+  //     }, py::arg("initial_guess") = Eigen::Matrix4f::Identity()
+  //   )
+  // ;
+
+  py::class_<PCLGICP, std::shared_ptr<PCLGICP>>(m, "PCLGICP")
+    .def(py::init())
+    .def("set_max_correspondence_distance", &PCLGICP::setMaxCorrespondenceDistance)
+    .def("set_input_target", [] (PCLGICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputTarget(eigen2pcl(points)); })
+    .def("set_input_source", [] (PCLGICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputSource(eigen2pcl(points)); })
+    .def("get_final_transformation", &PCLGICP::getFinalTransformation)
+    .def("align",
+      [] (PCLGICP& reg, const Eigen::Matrix4f& initial_guess) { 
         pcl::PointCloud<pcl::PointXYZ> aligned;
         reg.align(aligned, initial_guess);
         return reg.getFinalTransformation();

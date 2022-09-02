@@ -13,6 +13,7 @@
 
 // @sanghyun: Add default PCL ICP methods
 #include <pcl/registration/icp.h>
+#include <pcl/registration/gicp.h>
 
 class KittiLoader {
 public:
@@ -80,7 +81,9 @@ int main(int argc, char** argv) {
 
   // registration method
   // you should fine-tune hyper-parameters (e.g., voxel resolution, max correspondence distance) for the best result
-  pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  // pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> gicp;           // point 2 point
+  // pcl::IterativeClosestPointWithNormals<pcl::PointXYZ, pcl::PointXYZ> gicp;   // point 2 plane
+  pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> gicp;   // GICP
   // gicp.setNearestNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_RBF_KERNEL);
   gicp.setMaxCorrespondenceDistance(1.0);
 

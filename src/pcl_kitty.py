@@ -15,8 +15,9 @@ def main():
 	seq_path = sys.argv[1]
 	filenames = sorted([seq_path + '/' + x for x in os.listdir(seq_path) if x.endswith('.bin')])
 
-	# You can choose any of PCLICP
-	reg = pygicp.PCLICP()
+	# You can choose any of PCLICP, or PCLGICP
+	# reg = pygicp.PCLICP()
+	reg = pygicp.PCLGICP()
 
 	# pygicp classes have the same interface as the C++ version
 	# reg.set_max_correspondence_distance(2.0)
@@ -49,9 +50,9 @@ def main():
 		# Set target points
 		target_points = source_points
 
-		if i % 30 == 0:
+		if i % 1 == 0:
 			pyplot.clf()
-			pyplot.plot(traj[:, 0], traj[:, 1])
+			pyplot.plot(-traj[:, 1], traj[:, 0])
 			pyplot.axis('equal')
 			pyplot.pause(0.01)
 

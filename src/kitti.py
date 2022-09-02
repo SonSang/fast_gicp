@@ -48,9 +48,9 @@ def main():
 		# Plot the estimated trajectory
 		traj = numpy.array([x[:3, 3] for x in poses])
 
-		if i % 30 == 0:
+		if i % 1 == 0:
 			pyplot.clf()
-			pyplot.plot(traj[:, 0], traj[:, 1])
+			pyplot.plot(-traj[:, 1], traj[:, 0])
 			pyplot.axis('equal')
 			pyplot.pause(0.01)
 
