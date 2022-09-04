@@ -19,6 +19,7 @@
 // @sanghyun: add PCL ICP methods
 #include <pcl/registration/icp.h>
 #include <pcl/registration/gicp.h>
+#include <pcl/search/kdtree.h>
 
 namespace py = pybind11;
 
@@ -157,6 +158,7 @@ using NDTCuda = fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>;
 using PCLICP = pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>;
 // using PCLICP_Po2Pl = pcl::IterativeClosestPointWithNormals<pcl::PointXYZ, pcl::PointXYZ>;
 using PCLGICP = pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>; 
+using PCLKDTree = pcl::search::KdTree<pcl::PointXYZ>;
 
 PYBIND11_MODULE(pygicp, m) {
   m.def("downsample", &downsample, "downsample points");
@@ -271,6 +273,31 @@ PYBIND11_MODULE(pygicp, m) {
         reg.align(aligned, initial_guess);
         return reg.getFinalTransformation();
       }, py::arg("initial_guess") = Eigen::Matrix4f::Identity()
+    )
+  ;
+
+  py::class_<PCLKDTree, std::shared_ptr<PCLKDTree>>(m, "PCLKDTree")
+    .def(py::init())
+    .def("set_input_cloud", [] (PCLKDTree& tree, const Eigen::Matrix<double, -1, 3>& points) { tree.setInputCloud(eigen2pcl(points)); })
+    .def("knn", 
+      [] (PCLKDTree& tree, const Eigen::Matrix<double, -1, 3>& points, int k, int num_threads) {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_points = eigen2pcl(points);
+        Eigen::MatrixXi k_indices_m(pcl_points->size(), k);
+        
+        std::vector<int> k_indices(k);
+        std::vector<float> k_sq_dists(k);
+
+        #pragma omp parallel for num_threads(num_threads) firstprivate(k_indices, k_sq_dists) schedule(guided, 8)
+        for (int i = 0; i < pcl_points->size(); i++) {
+          pcl::PointXYZ& pt = pcl_points->at(i);
+          tree.nearestKSearch(pt, k, k_indices, k_sq_dists);
+
+          for (int j = 0; j < k; j++)
+            k_indices_m(i, j) = k_indices[j];
+        }
+
+        return k_indices_m;
+      }
     )
   ;
 
