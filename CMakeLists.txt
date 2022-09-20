@@ -13,8 +13,8 @@ else()
   set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 endif()
 
-set(CMAKE_BUILD_TYPE "Release")
-# set(CMAKE_BUILD_TYPE "Debug")   # Change to this to enable VSCode CMakeTools Debugging
+# set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Debug")   # Change to this to enable VSCode CMakeTools Debugging
 
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -54,6 +54,9 @@ add_library(fast_gicp SHARED
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp
+
+  src/fast_gicp/wgicp/d_lsq_registration.cpp
+  src/fast_gicp/wgicp/d_fast_gicp.cpp
 )
 target_link_libraries(fast_gicp
   ${PCL_LIBRARIES}
@@ -83,6 +86,13 @@ if(BUILD_apps)
   add_executable(pcl_kitti src/pcl_kitti.cpp)
   target_link_libraries(pcl_kitti
     ${PCL_LIBRARIES}
+  )
+
+  add_executable(wgicp_kitti src/wgicp/kitti.cpp)
+  add_dependencies(wgicp_kitti fast_gicp)
+  target_link_libraries(wgicp_kitti
+    ${PCL_LIBRARIES}
+    fast_gicp
   )
 endif()
 
