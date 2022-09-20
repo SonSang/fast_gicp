@@ -21,6 +21,9 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/search/kdtree.h>
 
+// @sanghyun: add differentiable WGICP methods
+#include <fast_gicp/wgicp/d_wgicp.hpp>
+
 namespace py = pybind11;
 
 fast_gicp::NeighborSearchMethod search_method(const std::string& neighbor_search_method) {
@@ -159,6 +162,10 @@ using PCLICP = pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>;
 // using PCLICP_Po2Pl = pcl::IterativeClosestPointWithNormals<pcl::PointXYZ, pcl::PointXYZ>;
 using PCLGICP = pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>; 
 using PCLKDTree = pcl::search::KdTree<pcl::PointXYZ>;
+
+using dLsqRegistration = wgicp::dLsqRegistration<pcl::PointXYZ, pcl::PointXYZ>;
+using dFastGICP = wgicp::dFastGICP<pcl::PointXYZ, pcl::PointXYZ>;
+using dWGICP = wgicp::dWGICP<pcl::PointXYZ, pcl::PointXYZ>;
 
 PYBIND11_MODULE(pygicp, m) {
   m.def("downsample", &downsample, "downsample points");
@@ -299,6 +306,39 @@ PYBIND11_MODULE(pygicp, m) {
         return k_indices_m;
       }
     )
+  ;
+
+  py::class_<dLsqRegistration, std::shared_ptr<dLsqRegistration>>(m, "dLsqRegistration")
+    .def("set_input_target", [] (dLsqRegistration& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputTarget(eigen2pcl(points)); })
+    .def("set_input_source", [] (dLsqRegistration& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputSource(eigen2pcl(points)); })
+    .def("swap_source_and_target", &dLsqRegistration::swapSourceAndTarget)
+    .def("get_final_hessian", &dLsqRegistration::getFinalHessian)
+    .def("get_final_transformation", &dLsqRegistration::getFinalTransformation)
+    .def("get_fitness_score", [] (dLsqRegistration& reg, const double max_range) { return reg.getFitnessScore(max_range); })
+    .def("align",
+      [] (dLsqRegistration& reg, const Eigen::Matrix4f& initial_guess) { 
+        pcl::PointCloud<pcl::PointXYZ> aligned;
+        reg.align(aligned, initial_guess);
+        return reg.getFinalTransformation();
+      }, py::arg("initial_guess") = Eigen::Matrix4f::Identity()
+    )
+  ;
+
+  py::class_<dFastGICP, dLsqRegistration, std::shared_ptr<dFastGICP>>(m, "dFastGICP")
+    .def(py::init())
+    .def("set_num_threads", &dFastGICP::setNumThreads)
+    .def("set_correspondence_randomness", &dFastGICP::setCorrespondenceRandomness)
+    .def("set_max_correspondence_distance", &dFastGICP::setMaxCorrespondenceDistance)
+  ;
+
+  py::class_<dWGICP, dFastGICP, std::shared_ptr<dWGICP>>(m, "dWGICP")
+    .def(py::init())
+    .def("set_source_weights", [](dWGICP& wgicp, const std::vector<float>& weights){
+      wgicp.setSourceWeights(weights);
+    })
+    .def("set_target_weights", [](dWGICP& wgicp, const std::vector<float>& weights){
+      wgicp.setTargetWeights(weights);
+    })
   ;
 
 #ifdef VERSION_INFO
