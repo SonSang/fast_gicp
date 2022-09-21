@@ -2,6 +2,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
+#include <pybind11/stl.h>
 
 #include <boost/filesystem.hpp>
 #include <fast_gicp/gicp/fast_gicp.hpp>
@@ -329,6 +330,12 @@ PYBIND11_MODULE(pygicp, m) {
     .def("set_num_threads", &dFastGICP::setNumThreads)
     .def("set_correspondence_randomness", &dFastGICP::setCorrespondenceRandomness)
     .def("set_max_correspondence_distance", &dFastGICP::setMaxCorrespondenceDistance)
+    .def("set_source_covariances", [] (dFastGICP& reg, const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
+      reg.setSourceCovariances(covs);
+    })
+    .def("set_target_covariances", [] (dFastGICP& reg, const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
+      reg.setTargetCovariances(covs);
+    })
   ;
 
   py::class_<dWGICP, dFastGICP, std::shared_ptr<dWGICP>>(m, "dWGICP")
