@@ -77,11 +77,21 @@ public:
     return target_weights_;
   }
 
+  virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
+  virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
+  virtual void setInputSourceCov(const PointCloudSourceConstPtr& cloud);
+  virtual void setInputTargetCov(const PointCloudTargetConstPtr& cloud);
+  
 protected:
   virtual void update_correspondences(const Eigen::Isometry3d& trans);
+  virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 protected:
   std::vector<float> source_weights_;
   std::vector<float> target_weights_;
+
+  // KDTrees used for computing covariances only; this is needed for rejection
+  std::shared_ptr<pcl::search::KdTree<PointSource>> source_kdtree_cov_;
+  std::shared_ptr<pcl::search::KdTree<PointTarget>> target_kdtree_cov_;
 };
 }  // namespace wgicp
 

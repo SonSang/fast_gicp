@@ -20,6 +20,9 @@ dWGICP<PointSource, PointTarget>::dWGICP() {
   regularization_method_ = fast_gicp::RegularizationMethod::PLANE;
   source_kdtree_.reset(new pcl::search::KdTree<PointSource>);
   target_kdtree_.reset(new pcl::search::KdTree<PointTarget>);
+
+  source_kdtree_cov_.reset(new pcl::search::KdTree<PointSource>);
+  target_kdtree_cov_.reset(new pcl::search::KdTree<PointTarget>);
 }
 
 template <typename PointSource, typename PointTarget>
@@ -29,6 +32,7 @@ template <typename PointSource, typename PointTarget>
 void dWGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   input_.swap(target_);
   source_kdtree_.swap(target_kdtree_);
+  source_kdtree_cov_.swap(target_kdtree_cov_);
   source_covs_.swap(target_covs_);
   source_weights_.swap(target_weights_);
 
@@ -50,6 +54,43 @@ void dWGICP<PointSource, PointTarget>::clearTarget() {
   target_weights_.clear();
 }
 
+
+template <typename PointSource, typename PointTarget>
+void dWGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
+  if (input_ == cloud) {
+    return;
+  }
+
+  pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
+  source_kdtree_->setInputCloud(cloud);
+  source_kdtree_cov_->setInputCloud(cloud);
+  source_covs_.clear();
+}
+
+template <typename PointSource, typename PointTarget>
+void dWGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
+  if (target_ == cloud) {
+    return;
+  }
+  pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
+  target_kdtree_->setInputCloud(cloud);
+  target_kdtree_cov_->setInputCloud(cloud);
+  target_covs_.clear();
+}
+
+
+template <typename PointSource, typename PointTarget>
+void dWGICP<PointSource, PointTarget>::setInputSourceCov(const PointCloudSourceConstPtr& cloud) {
+  source_kdtree_cov_->setInputCloud(cloud);
+  source_covs_.clear();
+}
+
+template <typename PointSource, typename PointTarget>
+void dWGICP<PointSource, PointTarget>::setInputTargetCov(const PointCloudTargetConstPtr& cloud) {
+  target_kdtree_cov_->setInputCloud(cloud);
+  target_covs_.clear();
+}
+
 template <typename PointSource, typename PointTarget>
 void dWGICP<PointSource, PointTarget>::setSourceWeights(const std::vector<float>& weights) {
   source_weights_ = weights;
@@ -58,6 +99,18 @@ void dWGICP<PointSource, PointTarget>::setSourceWeights(const std::vector<float>
 template <typename PointSource, typename PointTarget>
 void dWGICP<PointSource, PointTarget>::setTargetWeights(const std::vector<float>& weights) {
   target_weights_ = weights;
+}
+
+template <typename PointSource, typename PointTarget>
+void dWGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+  if (source_covs_.size() != input_->size()) {
+    dFastGICP<PointSource, PointTarget>::calculate_covariances(input_, *source_kdtree_cov_, source_covs_);
+  }
+  if (target_covs_.size() != target_->size()) {
+    dFastGICP<PointSource, PointTarget>::calculate_covariances(target_, *target_kdtree_cov_, target_covs_);
+  }
+
+  dLsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
 template <typename PointSource, typename PointTarget>

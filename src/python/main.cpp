@@ -346,6 +346,8 @@ PYBIND11_MODULE(pygicp, m) {
     .def("set_target_weights", [](dWGICP& wgicp, const std::vector<float>& weights){
       wgicp.setTargetWeights(weights);
     })
+    .def("set_input_target_cov", [] (dWGICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputTargetCov(eigen2pcl(points)); })
+    .def("set_input_source_cov", [] (dWGICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputSourceCov(eigen2pcl(points)); })
   ;
 
 #ifdef VERSION_INFO
