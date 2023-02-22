@@ -16,6 +16,8 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/filters/approximate_voxel_grid.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/uniform_sampling.h>
 
 // @sanghyun: add PCL ICP methods
 #include <pcl/registration/icp.h>
@@ -69,6 +71,43 @@ Eigen::Matrix<double, -1, 3> downsample(const Eigen::Matrix<double, -1, 3>& poin
 
   return filtered_points.cast<double>();
 }
+
+Eigen::Matrix<double, -1, 3> downsample_voxel_avg(const Eigen::Matrix<double, -1, 3>& points, double downsample_resolution) {
+  auto cloud = eigen2pcl(points);
+
+  pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+  voxelgrid.setLeafSize(downsample_resolution, downsample_resolution, downsample_resolution);
+  voxelgrid.setInputCloud(cloud);
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>);
+  voxelgrid.filter(*filtered);
+
+  Eigen::Matrix<float, -1, 3> filtered_points(filtered->size(), 3);
+  for(int i=0; i<filtered->size(); i++) {
+    filtered_points.row(i) = filtered->at(i).getVector3fMap();
+  }
+
+  return filtered_points.cast<double>();
+}
+
+Eigen::Matrix<double, -1, 3> downsample_voxel_cen(const Eigen::Matrix<double, -1, 3>& points, double downsample_resolution) {
+  auto cloud = eigen2pcl(points);
+
+  pcl::UniformSampling<pcl::PointXYZ> voxelgrid;
+  voxelgrid.setRadiusSearch(downsample_resolution);
+  voxelgrid.setInputCloud(cloud);
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>);
+  voxelgrid.filter(*filtered);
+
+  Eigen::Matrix<float, -1, 3> filtered_points(filtered->size(), 3);
+  for(int i=0; i<filtered->size(); i++) {
+    filtered_points.row(i) = filtered->at(i).getVector3fMap();
+  }
+
+  return filtered_points.cast<double>();
+}
+
 
 Eigen::Matrix4d align_points(
   const Eigen::Matrix<double, -1, 3>& target,
@@ -170,6 +209,8 @@ using dWGICP = wgicp::dWGICP<pcl::PointXYZ, pcl::PointXYZ>;
 
 PYBIND11_MODULE(pygicp, m) {
   m.def("downsample", &downsample, "downsample points");
+  m.def("downsample_voxel_avg", &downsample_voxel_avg, "downsample points using voxel (using average of points in the voxel)");
+  m.def("downsample_voxel_cen", &downsample_voxel_cen, "downsample points using voxel (using closest point to the voxel center)");
 
   m.def("align_points", &align_points, "align two point sets",
     py::arg("target"),
