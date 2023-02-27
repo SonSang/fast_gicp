@@ -56,8 +56,6 @@ protected:
   using wgicp::dFastGICP<PointSource, PointTarget>::correspondences_;
   using wgicp::dFastGICP<PointSource, PointTarget>::sq_distances_;
   
-  
-
 public:
   dWGICP();
   virtual ~dWGICP() override;
@@ -81,6 +79,11 @@ public:
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
   virtual void setInputSourceCov(const PointCloudSourceConstPtr& cloud);
   virtual void setInputTargetCov(const PointCloudTargetConstPtr& cloud);
+
+  virtual void setSelectedSourceIndices(const std::vector<int>& indices);
+  const std::vector<int>& getSelectedSourceIndices() const {
+    return selected_source_indices_;
+  }
   
 protected:
   virtual void update_correspondences(const Eigen::Isometry3d& trans);
@@ -88,6 +91,10 @@ protected:
 protected:
   std::vector<float> source_weights_;
   std::vector<float> target_weights_;
+  
+  // @sanghyun: only use selected source points for speed up;
+  std::vector<int> selected_source_indices_;
+  
 
   // KDTrees used for computing covariances only; this is needed for rejection
   std::shared_ptr<pcl::search::KdTree<PointSource>> source_kdtree_cov_;

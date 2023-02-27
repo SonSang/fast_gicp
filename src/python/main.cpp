@@ -440,6 +440,9 @@ PYBIND11_MODULE(pygicp, m) {
     })
     .def("set_input_target_cov", [] (dWGICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputTargetCov(eigen2pcl(points)); })
     .def("set_input_source_cov", [] (dWGICP& reg, const Eigen::Matrix<double, -1, 3>& points) { reg.setInputSourceCov(eigen2pcl(points)); })
+    .def("set_selected_source_indices", [] (dWGICP& wgicp, const std::vector<int>& indices) {
+      wgicp.setSelectedSourceIndices(indices);
+    })
   ;
 
 #ifdef VERSION_INFO

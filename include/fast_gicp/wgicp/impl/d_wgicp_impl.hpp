@@ -35,6 +35,8 @@ void dWGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   source_kdtree_cov_.swap(target_kdtree_cov_);
   source_covs_.swap(target_covs_);
   source_weights_.swap(target_weights_);
+  selected_source_indices_ = std::vector<int>(input_->size());
+  std::iota(selected_source_indices_.begin(), selected_source_indices_.end(), 0);
 
   correspondences_.clear();
   sq_distances_.clear();
@@ -45,6 +47,7 @@ void dWGICP<PointSource, PointTarget>::clearSource() {
   input_.reset();
   source_covs_.clear();
   source_weights_.clear();
+  selected_source_indices_.clear();
 }
 
 template <typename PointSource, typename PointTarget>
@@ -65,6 +68,8 @@ void dWGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceCons
   source_kdtree_->setInputCloud(cloud);
   source_kdtree_cov_->setInputCloud(cloud);
   source_covs_.clear();
+  selected_source_indices_ = std::vector<int>(input_->size());
+  std::iota(selected_source_indices_.begin(), selected_source_indices_.end(), 0);
 }
 
 template <typename PointSource, typename PointTarget>
@@ -102,6 +107,11 @@ void dWGICP<PointSource, PointTarget>::setTargetWeights(const std::vector<float>
 }
 
 template <typename PointSource, typename PointTarget>
+void dWGICP<PointSource, PointTarget>::setSelectedSourceIndices(const std::vector<int>& indices) {
+  selected_source_indices_ = indices;
+}
+
+template <typename PointSource, typename PointTarget>
 void dWGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   if (source_covs_.size() != input_->size()) {
     dFastGICP<PointSource, PointTarget>::calculate_covariances(input_, *source_kdtree_cov_, source_covs_);
@@ -123,6 +133,7 @@ void dWGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Isome
   Eigen::Isometry3f trans_f = trans.cast<float>();
 
   correspondences_.resize(input_->size());
+  std::fill(correspondences_.begin(), correspondences_.end(), -1);  // @sanghyun: we use only selected indices...
   sq_distances_.resize(input_->size());
   mahalanobis_.resize(input_->size());
 
@@ -130,7 +141,10 @@ void dWGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Isome
   std::vector<float> k_sq_dists(1);
 
 #pragma omp parallel for num_threads(num_threads_) firstprivate(k_indices, k_sq_dists) schedule(guided, 8)
-  for (int i = 0; i < input_->size(); i++) {
+  // for (int i = 0; i < input_->size(); i++) {
+  for (int p = 0; p < selected_source_indices_.size(); p++) {
+    int i = selected_source_indices_[p];
+
     PointTarget pt;
     pt.getVector4fMap() = trans_f * input_->at(i).getVector4fMap();
 
