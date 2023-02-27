@@ -16,6 +16,8 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/filters/approximate_voxel_grid.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/uniform_sampling.h>
 
 // @sanghyun: add PCL ICP methods
 #include <pcl/registration/icp.h>
@@ -24,6 +26,8 @@
 
 // @sanghyun: add differentiable WGICP methods
 #include <fast_gicp/wgicp/d_wgicp.hpp>
+#include <algorithm>
+#include <set>
 
 namespace py = pybind11;
 
@@ -68,6 +72,91 @@ Eigen::Matrix<double, -1, 3> downsample(const Eigen::Matrix<double, -1, 3>& poin
   }
 
   return filtered_points.cast<double>();
+}
+
+Eigen::Matrix<double, -1, 3> downsample_voxel_avg(const Eigen::Matrix<double, -1, 3>& points, double downsample_resolution) {
+  auto cloud = eigen2pcl(points);
+
+  pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+  voxelgrid.setLeafSize(downsample_resolution, downsample_resolution, downsample_resolution);
+  voxelgrid.setInputCloud(cloud);
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>);
+  voxelgrid.filter(*filtered);
+
+  Eigen::Matrix<float, -1, 3> filtered_points(filtered->size(), 3);
+  for(int i=0; i<filtered->size(); i++) {
+    filtered_points.row(i) = filtered->at(i).getVector3fMap();
+  }
+
+  return filtered_points.cast<double>();
+}
+
+Eigen::Matrix<double, -1, 3> downsample_voxel_cen(const Eigen::Matrix<double, -1, 3>& points, double downsample_resolution) {
+  auto cloud = eigen2pcl(points);
+
+  pcl::UniformSampling<pcl::PointXYZ> voxelgrid;
+  voxelgrid.setRadiusSearch(downsample_resolution);
+  voxelgrid.setInputCloud(cloud);
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>);
+  voxelgrid.filter(*filtered);
+
+  Eigen::Matrix<float, -1, 3> filtered_points(filtered->size(), 3);
+  for(int i=0; i<filtered->size(); i++) {
+    filtered_points.row(i) = filtered->at(i).getVector3fMap();
+  }
+
+  return filtered_points.cast<double>();
+}
+
+int my_floor(double x) {
+  return std::floor(x);
+}
+
+double find_voxel_size(const Eigen::Matrix<double, -1, 3>& points, int num_sample) {
+  double curr_voxel_size = 1.0;
+  int curr_num_voxel = -1;
+  int find_max_iter = 10;
+
+  double voxel_size_lb = 0.0;
+  double voxel_size_ub = (points.colwise().maxCoeff() - points.colwise().minCoeff()).maxCoeff();
+  
+  if (curr_voxel_size < voxel_size_lb)
+    curr_voxel_size = voxel_size_lb;
+  else if (curr_voxel_size > voxel_size_ub)
+    curr_voxel_size = voxel_size_ub;
+
+  double num_voxel_lb = num_sample * 0.8;
+  double num_voxel_ub = num_sample * 1.2;
+
+  auto min_bound = points.colwise().minCoeff();
+
+  for (int i = 0; i < find_max_iter; i++) {
+    Eigen::Matrix<double, -1, 3> ref_coord = (points.rowwise() - min_bound) / curr_voxel_size;
+    Eigen::Matrix<int, -1, 3> ref_icoord = ref_coord.unaryExpr(&my_floor);
+    Eigen::Array<int, 1, 3> ref_icoord_max = ref_icoord.colwise().maxCoeff();
+    ref_icoord_max += 1;
+
+    Eigen::Array<int, -1, 1> point_voxel_index = ref_icoord.col(0) * ref_icoord_max(0, 1) * ref_icoord_max(0, 2) +
+                              ref_icoord.col(1) * ref_icoord_max(0, 2) + ref_icoord.col(2);
+
+    std::set<int> unique_indices{point_voxel_index.data(), 
+                    point_voxel_index.data() + point_voxel_index.size()};
+    curr_num_voxel = unique_indices.size();
+
+    if (curr_num_voxel > num_voxel_lb && 
+          curr_num_voxel < num_voxel_ub)
+      break;
+    
+    if (curr_num_voxel >= num_voxel_ub)
+      voxel_size_lb = curr_voxel_size;
+    else
+      voxel_size_ub = curr_voxel_size;
+
+    curr_voxel_size = (voxel_size_lb + voxel_size_ub) * 0.5;
+  }
+  return curr_voxel_size;
 }
 
 Eigen::Matrix4d align_points(
@@ -170,6 +259,9 @@ using dWGICP = wgicp::dWGICP<pcl::PointXYZ, pcl::PointXYZ>;
 
 PYBIND11_MODULE(pygicp, m) {
   m.def("downsample", &downsample, "downsample points");
+  m.def("downsample_voxel_avg", &downsample_voxel_avg, "downsample points using voxel (using average of points in the voxel)");
+  m.def("downsample_voxel_cen", &downsample_voxel_cen, "downsample points using voxel (using closest point to the voxel center)");
+  m.def("find_voxel_size", &find_voxel_size, "find voxel size that can give us desired number of points");
 
   m.def("align_points", &align_points, "align two point sets",
     py::arg("target"),
