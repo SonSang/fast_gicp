@@ -205,6 +205,10 @@ double dFastGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& t
       (*H) += Hs[i];
       (*b) += bs[i];
     }
+
+    // @sanghyun: divide by number of input point cloud;
+    *H = *H / static_cast<double>(input_->size());
+    *b = *b / static_cast<double>(input_->size());
   }
 
   return sum_errors;
@@ -212,6 +216,7 @@ double dFastGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& t
 
 template <typename PointSource, typename PointTarget>
 double dFastGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans) {
+  update_correspondences(trans);   // @sanghyun: update correspondences before computing next error;
   double sum_errors = 0.0;
 
 #pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors) schedule(guided, 8)

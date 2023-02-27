@@ -2,6 +2,7 @@
 
 #include <boost/format.hpp>
 #include <fast_gicp/so3/so3.hpp>
+#include <iostream>
 
 namespace wgicp {
 
@@ -164,6 +165,14 @@ bool dLsqRegistration<PointTarget, PointSource>::step_lm(Eigen::Isometry3d& x0, 
 
   xi = delta * x0;
   x0 = xi;
+
+  // std::cout << "d: " << d << std::endl;
+  // std::cout << "H: " << H << std::endl;
+  // std::cout << "b: " << b << std::endl;
+  // std::cout << "y0: " << y0 << std::endl;
+  // std::cout << "yi: " << yi << std::endl;
+  // std::cout << "Delta Linear: " << delta.linear() << std::endl;
+  // std::cout << "Delta Trans: " << delta.translation() << std::endl;
 
   final_hessian_ = H;
   return true;
